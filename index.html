@@ -1,92 +1,512 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Maintanance Dashboard</title>
+    <title>Utility Daily Reading</title>
 
     <style>
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             font-family: Arial, sans-serif;
             margin: 0;
-            padding: 30px;
-            background: #f5f5f5;
+            padding: 25px;
+            background: #f4f6f8;
+            color: #222;
         }
 
-        h1 {
+        .header {
+            max-width: 1200px;
+            margin: auto;
             text-align: center;
         }
 
-        .dashboard {
+        .header h1 {
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            color: #666;
+        }
+
+        .controls {
+            max-width: 1200px;
+            margin: 25px auto;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            text-align: center;
+        }
+
+        .controls input {
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+        }
+
+        .summary {
+            max-width: 1200px;
+            margin: 25px auto;
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
-            max-width: 1000px;
-            margin: 30px auto;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
         }
 
         .card {
             background: white;
-            padding: 25px;
+            padding: 20px;
             border-radius: 12px;
             text-align: center;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .card h2 {
+            font-size: 15px;
+            margin-bottom: 10px;
         }
 
         .number {
-            font-size: 40px;
+            font-size: 32px;
             font-weight: bold;
         }
 
         .green {
-            color: green;
+            color: #16803c;
         }
 
         .yellow {
-            color: orange;
+            color: #d88900;
         }
 
         .red {
-            color: red;
+            color: #d62828;
+        }
+
+        .gray {
+            color: #777;
+        }
+
+        .section {
+            max-width: 1200px;
+            margin: 25px auto;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            overflow-x: auto;
+        }
+
+        .section h2 {
+            margin-top: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+            text-align: center;
+        }
+
+        th {
+            background: #f8f8f8;
+        }
+
+        th:first-child,
+        td:first-child {
+            text-align: left;
+        }
+
+        .status {
+            font-weight: bold;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 30px;
+            color: #777;
+        }
+
+        .error {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 15px;
+            background: #ffe5e5;
+            color: #b00020;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .footer {
+            text-align: center;
+            color: #777;
+            margin: 25px;
+        }
+
+        @media (max-width: 800px) {
+            .summary {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 500px) {
+            body {
+                padding: 10px;
+            }
+
+            .summary {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 
 <body>
 
-    <h1>Maintenance Dashboard</h1>
+    <div class="header">
+        <h1>Utility Daily Reading</h1>
+        <p>Water • Power • LPG</p>
+    </div>
 
-    <div class="dashboard">
+    <div class="controls">
+        <label>
+            <strong>Select Date:</strong>
+            <input type="date" id="datePicker">
+        </label>
+    </div>
+
+    <div id="errorMessage" class="error"></div>
+
+    <div class="summary">
 
         <div class="card">
-            <h2>Total Outlets</h2>
-            <div class="number">20</div>
+            <h2>Active Outlets</h2>
+            <div id="totalOutlets" class="number">-</div>
         </div>
 
         <div class="card">
-            <h2>Good</h2>
-            <div class="number green">15</div>
+            <h2>Complete</h2>
+            <div id="completeOutlets" class="number green">-</div>
         </div>
 
         <div class="card">
-            <h2>With Issues</h2>
-            <div class="number yellow">3</div>
+            <h2>Incomplete</h2>
+            <div id="incompleteOutlets" class="number red">-</div>
         </div>
 
         <div class="card">
-            <h2>Critical</h2>
-            <div class="number red">2</div>
-        </div>
-
-        <div class="card">
-            <h2>Open Maintenance</h2>
-            <div class="number red">2</div>
-        </div>
-
-        <div class="card">
-            <h2>Pending</h2>
-            <div class="number yellow">4</div>
+            <h2>Submission Rate</h2>
+            <div id="submissionRate" class="number">-</div>
         </div>
 
     </div>
+
+    <div class="section">
+
+        <h2>Daily Utility Submission</h2>
+
+        <div id="loading" class="loading">
+            Loading utility readings...
+        </div>
+
+        <table id="readingTable" style="display:none;">
+
+            <thead>
+                <tr>
+                    <th>Outlet</th>
+                    <th>Power</th>
+                    <th>Water</th>
+                    <th>LPG</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+
+            <tbody id="readingBody"></tbody>
+
+        </table>
+
+    </div>
+
+    <div class="footer">
+        Data source: Google Sheets
+    </div>
+
+
+<script>
+
+    /*
+        PASTE YOUR APPS SCRIPT WEB APP URL BETWEEN THE QUOTES BELOW.
+    */
+
+    const API_URL = "https://script.google.com/a/macros/theabacagroup.com/s/AKfycbzpXHMqkm5JLHcVSz12bcrE2akpMsfbQR97chOM7E86vse2gT6AtGfnRyhtRYGhk9MyWg/exec";
+
+
+    let allReadings = [];
+    let masterlist = [];
+
+
+    async function loadData() {
+
+        try {
+
+            const response = await fetch(API_URL);
+
+            if (!response.ok) {
+                throw new Error("Unable to connect to the data source.");
+            }
+
+            const data = await response.json();
+
+            allReadings = data.readings || [];
+            masterlist = data.masterlist || [];
+
+            document.getElementById("loading").style.display = "none";
+            document.getElementById("readingTable").style.display = "table";
+
+            setupDatePicker();
+
+        } catch (error) {
+
+            document.getElementById("loading").style.display = "none";
+
+            const errorBox = document.getElementById("errorMessage");
+
+            errorBox.style.display = "block";
+
+            errorBox.textContent =
+                "Unable to load utility data. Please check the Apps Script connection.";
+
+            console.error(error);
+        }
+    }
+
+
+    function getReadingDate(timestamp) {
+
+        const date = new Date(timestamp);
+
+        return date.toLocaleDateString("en-CA", {
+            timeZone: "Asia/Manila"
+        });
+
+    }
+
+
+    function setupDatePicker() {
+
+        const dates = allReadings
+            .map(row => getReadingDate(row["Timestamp"]))
+            .filter(Boolean)
+            .sort();
+
+        const latestDate = dates.length
+            ? dates[dates.length - 1]
+            : new Date().toLocaleDateString("en-CA");
+
+        const picker = document.getElementById("datePicker");
+
+        picker.value = latestDate;
+
+        picker.addEventListener("change", displayDashboard);
+
+        displayDashboard();
+
+    }
+
+
+    function displayDashboard() {
+
+        const selectedDate =
+            document.getElementById("datePicker").value;
+
+
+        const dailyReadings = allReadings.filter(row => {
+
+            return getReadingDate(row["Timestamp"]) === selectedDate;
+
+        });
+
+
+        const submitted = {};
+
+
+        dailyReadings.forEach(row => {
+
+            const outlet = row["OUTLET"];
+            const segment = row["SEGMENT"];
+
+            if (!submitted[outlet]) {
+                submitted[outlet] = {};
+            }
+
+            submitted[outlet][segment] = row["READING"];
+
+        });
+
+
+        const activeOutlets = masterlist.filter(row => {
+
+            return String(row["STATUS"]).toUpperCase() === "ACTIVE";
+
+        });
+
+
+        let completeCount = 0;
+        let incompleteCount = 0;
+
+
+        const tbody =
+            document.getElementById("readingBody");
+
+        tbody.innerHTML = "";
+
+
+        activeOutlets.forEach(outlet => {
+
+            const outletName =
+                outlet["OFFICIAL NAME"];
+
+            const formName =
+                outlet["OUTLETS in FORM"];
+
+
+            const readings =
+                submitted[formName] || {};
+
+
+            const utilities = {
+
+                POWER: outlet["POWER"],
+                WATER: outlet["WATER"],
+                LPG: outlet["LPG"]
+
+            };
+
+
+            let missing = false;
+
+
+            function getStatus(utility) {
+
+                if (
+                    String(utilities[utility]).toUpperCase() !== "YES"
+                ) {
+
+                    return '<span class="gray">N/A</span>';
+
+                }
+
+
+                if (
+                    readings[utility] !== undefined &&
+                    readings[utility] !== ""
+                ) {
+
+                    return '<span class="green">✓</span>';
+
+                }
+
+
+                missing = true;
+
+                return '<span class="red">✕</span>';
+
+            }
+
+
+            const power =
+                getStatus("POWER");
+
+            const water =
+                getStatus("WATER");
+
+            const lpg =
+                getStatus("LPG");
+
+
+            let overallStatus;
+
+
+            if (missing) {
+
+                overallStatus =
+                    '<span class="status red">INCOMPLETE</span>';
+
+                incompleteCount++;
+
+            } else {
+
+                overallStatus =
+                    '<span class="status green">COMPLETE</span>';
+
+                completeCount++;
+
+            }
+
+
+            const row = document.createElement("tr");
+
+
+            row.innerHTML = `
+
+                <td>
+                    <strong>${outletName}</strong>
+                </td>
+
+                <td>${power}</td>
+
+                <td>${water}</td>
+
+                <td>${lpg}</td>
+
+                <td>${overallStatus}</td>
+
+            `;
+
+
+            tbody.appendChild(row);
+
+        });
+
+
+        const total =
+            activeOutlets.length;
+
+
+        const rate =
+            total > 0
+                ? Math.round((completeCount / total) * 100)
+                : 0;
+
+
+        document.getElementById("totalOutlets")
+            .textContent = total;
+
+
+        document.getElementById("completeOutlets")
+            .textContent = completeCount;
+
+
+        document.getElementById("incompleteOutlets")
+            .textContent = incompleteCount;
+
+
+        document.getElementById("submissionRate")
+            .textContent = rate + "%";
+
+    }
+
+
+    loadData();
+
+</script>
 
 </body>
 </html>
